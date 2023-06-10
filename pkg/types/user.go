@@ -21,7 +21,7 @@ type User struct {
 func (u *User) Create(db *gorm.DB) (*User, error) {
 	hashedPasswd, err := hashPassword(u.Password)
 	if err != nil {
-		return &User{}, nil
+		return &User{}, err
 	}
 	u.Password = hashedPasswd
 
@@ -36,7 +36,7 @@ func (u *User) FindAll(db *gorm.DB) (*[]User, error) {
 	var users []User
 	err := db.Model(&User{}).Find(&users).Error
 	if err != nil {
-		return &[]User{}, nil
+		return &[]User{}, err
 	}
 	return &users, nil
 }
@@ -44,8 +44,11 @@ func (u *User) FindAll(db *gorm.DB) (*[]User, error) {
 func (u *User) FindById(db *gorm.DB, id uint64) (*User, error) {
 	var user User
 	err := db.Model(&User{}).Where("id = ?", id).First(&user).Error
-	if err == gorm.ErrRecordNotFound {
+	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
 		return &User{}, errors.New("user not found")
+	}
+	if err != nil {
+		return &User{}, err
 	}
 	return &user, nil
 }
@@ -79,8 +82,11 @@ func (u *User) Delete(db *gorm.DB, id uint64) error {
 	}
 
 	err = db.Model(&User{}).Where("id = ?", id).Delete(&u).Error
-	if err == gorm.ErrRecordNotFound {
+	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
 		return errors.New("user not found")
+	}
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -88,7 +94,7 @@ func (u *User) Delete(db *gorm.DB, id uint64) error {
 func (u *User) GetToken(db *gorm.DB, email, password string) (string, error) {
 	var user User
 	err := db.Model(&User{}).Where("email = ?", email).First(&user).Error
-	if err != nil && err == gorm.ErrRecordNotFound {
+	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
 		return "", errors.New("invalid credentials")
 	}
 
