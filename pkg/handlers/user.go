@@ -6,99 +6,107 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
 	"github.com/anurag-rajawat/rest-api/pkg/types"
-	"github.com/anurag-rajawat/rest-api/pkg/utils"
 )
 
-func GetUsers(ctx *gin.Context) {
-	var user types.User
-	users, err := user.FindAll(utils.GetDb())
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
+func GetUsersHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		var user types.User
+		users, err := user.FindAll(db)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"users": users,
-	})
+		ctx.JSON(http.StatusOK, gin.H{
+			"users": users,
+		})
+	}
 }
 
-func GetUser(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	id, err := validateId(idStr)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
+func GetUserHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		idStr := ctx.Param("id")
+		id, err := validateId(idStr)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
 
-	var user types.User
-	usr, err := user.FindById(utils.GetDb(), id)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-			"error": "user not found",
-		})
-		return
-	}
+		var user types.User
+		usr, err := user.FindById(db, id)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+				"error": "user not found",
+			})
+			return
+		}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"user": usr,
-	})
+		ctx.JSON(http.StatusOK, gin.H{
+			"user": usr,
+		})
+	}
 }
 
-func UpdateUser(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	id, err := validateId(idStr)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"error": err,
-		})
-		return
-	}
+func UpdateUserHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		idStr := ctx.Param("id")
+		id, err := validateId(idStr)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": err,
+			})
+			return
+		}
 
-	var user types.User
-	if err := ctx.BindJSON(&user); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
+		var user types.User
+		if err := ctx.BindJSON(&user); err != nil {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
 
-	updatedUser, err := user.Update(utils.GetDb(), id)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
+		updatedUser, err := user.Update(db, id)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		ctx.JSON(http.StatusCreated, gin.H{
+			"user": updatedUser,
 		})
-		return
 	}
-	ctx.JSON(http.StatusCreated, gin.H{
-		"user": updatedUser,
-	})
 }
 
-func DeleteUser(ctx *gin.Context) {
-	idStr := ctx.Param("id")
-	id, err := validateId(idStr)
-	if err != nil {
-		ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-			"error": err,
-		})
-		return
-	}
+func DeleteUserHandler(db *gorm.DB) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		idStr := ctx.Param("id")
+		id, err := validateId(idStr)
+		if err != nil {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": err,
+			})
+			return
+		}
 
-	var user types.User
-	if err = user.Delete(utils.GetDb(), id); err != nil {
-		ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
+		var user types.User
+		if err = user.Delete(db, id); err != nil {
+			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
 
-	ctx.Status(http.StatusNoContent)
+		ctx.Status(http.StatusNoContent)
+	}
 }
 
 func validateId(idStr string) (uint64, error) {

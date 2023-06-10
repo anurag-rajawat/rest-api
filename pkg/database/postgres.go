@@ -1,10 +1,12 @@
-package utils
+package database
 
 import (
 	"fmt"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"github.com/anurag-rajawat/rest-api/pkg/types"
 )
 
 // ConnectToDb creates a connection to the postgres
@@ -16,4 +18,13 @@ func ConnectToDb(dbHost, dbUser, dbPasswd, dbName, dbPort string) (*gorm.DB, err
 		return nil, err
 	}
 	return conn, nil
+}
+
+// Initialize initializes database connection
+func Initialize(db *gorm.DB) error {
+	err := db.AutoMigrate(&types.User{})
+	if err != nil {
+		return err
+	}
+	return nil
 }
