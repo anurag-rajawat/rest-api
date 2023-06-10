@@ -24,8 +24,7 @@ func SignUpHandler(db *gorm.DB) gin.HandlerFunc {
 
 		newUser, err := user.Create(db)
 		if err != nil {
-			// TODO: Change status code to conflict
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{
 				"error": err.Error(),
 			})
 			return
