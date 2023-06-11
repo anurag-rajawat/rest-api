@@ -16,9 +16,7 @@ func GetUsersHandler(db *gorm.DB) gin.HandlerFunc {
 		var user types.User
 		users, err := user.FindAll(db)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-				"error": err.Error(),
-			})
+			_ = ctx.AbortWithError(http.StatusInternalServerError, err)
 			return
 		}
 
@@ -60,7 +58,7 @@ func UpdateUserHandler(db *gorm.DB) gin.HandlerFunc {
 		id, err := validateId(idStr)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"error": err,
+				"error": err.Error(),
 			})
 			return
 		}
@@ -75,7 +73,7 @@ func UpdateUserHandler(db *gorm.DB) gin.HandlerFunc {
 
 		updatedUser, err := user.Update(db, id)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
 				"error": err.Error(),
 			})
 			return
@@ -92,7 +90,7 @@ func DeleteUserHandler(db *gorm.DB) gin.HandlerFunc {
 		id, err := validateId(idStr)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"error": err,
+				"error": err.Error(),
 			})
 			return
 		}
@@ -110,9 +108,6 @@ func DeleteUserHandler(db *gorm.DB) gin.HandlerFunc {
 }
 
 func validateId(idStr string) (uint64, error) {
-	if idStr == "" {
-		return 0, errors.New("please provide ID")
-	}
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
 		return 0, errors.New("invalid ID")
