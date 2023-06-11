@@ -56,6 +56,3 @@ go.work
 ### macOS template
 # General
 .DS_Store
-
-# Environment files
-*.env
