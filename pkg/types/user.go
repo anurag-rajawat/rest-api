@@ -6,15 +6,16 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
 type User struct {
 	ID        uint64    `json:"id" gorm:"primaryKey;autoIncrement"`
-	UserName  string    `json:"username" binding:"required,min=3,max=255" gorm:"type:varchar(255);not null"`
-	Email     string    `json:"email" binding:"required,email" gorm:"type:varchar(255);unique; not null"`
-	Password  string    `json:"password" binding:"required,min=6,max=16" gorm:"type:varchar(60); not null"`
+	UserName  string    `json:"username" gorm:"type:varchar(255);not null"`
+	Email     string    `json:"email" gorm:"type:varchar(255);unique; not null"`
+	Password  string    `json:"password" gorm:"type:varchar(60); not null"`
 	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
 }
 
@@ -49,6 +50,15 @@ func (u *User) FindById(db *gorm.DB, id uint64) (*User, error) {
 	}
 	if err != nil {
 		return &User{}, err
+	}
+	return &user, nil
+}
+
+func (u *User) FindByEmail(db *gorm.DB, email string) (*User, error) {
+	var user User
+	err := db.Model(&User{}).Where("email = ?", email).First(&user).Error
+	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
+		return &User{}, errors.New("user not found")
 	}
 	return &user, nil
 }
@@ -91,41 +101,22 @@ func (u *User) Delete(db *gorm.DB, id uint64) error {
 	return nil
 }
 
-func (u *User) GetToken(db *gorm.DB, email, password string) (string, error) {
-	var user User
-	err := db.Model(&User{}).Where("email = ?", email).First(&user).Error
-	if err != nil && errors.Is(err, gorm.ErrRecordNotFound) {
-		return "", errors.New("invalid credentials")
+func (u *User) GetJwtToken() (string, error) {
+	claims := jwt.MapClaims{
+		"id":         u.ID,
+		"email":      u.Email,
+		"expires_at": time.Now().Add(24 * time.Hour).Unix(),
 	}
 
-	err = verifyPassword(user.Password, password)
+	token, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(os.Getenv("SECRET_KEY")))
 	if err != nil {
-		return "", errors.New("invalid credentials")
-	}
-
-	token := createToken(user.ID, email)
-	if token == "" {
-		return "", errors.New("error generating JWT token")
+		log.Error(err)
+		return "", err
 	}
 	return token, nil
 }
 
-func createToken(id uint64, email string) string {
-	claims := jwt.MapClaims{
-		"authorized": true,
-		"id":         id,
-		"email":      email,
-		"expiration": time.Now().Add(1 * time.Hour).Unix(),
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenStr, err := token.SignedString([]byte(os.Getenv("SECRET_KEY")))
-	if err != nil {
-		return ""
-	}
-	return tokenStr
-}
-
-func verifyPassword(hashedPassword string, password string) error {
+func (u *User) CheckPassword(hashedPassword string, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 

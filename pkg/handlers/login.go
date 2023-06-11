@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 
 	"github.com/anurag-rajawat/rest-api/pkg/types"
@@ -11,36 +12,29 @@ import (
 
 func SignUpHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		var user types.User
-		if err := ctx.BindJSON(&user); err != nil {
+		var userRequest types.User
+		if err := ctx.BindJSON(&userRequest); err != nil {
+			log.Warn(err)
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"error": err.Error(),
+				"error": "invalid request",
 			})
 			return
 		}
 
-		// Save password before saving user to generate bearer token
-		password := user.Password
+		if userRequest.UserName == "" || userRequest.Email == "" || userRequest.Password == "" {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": "please provide required details",
+			})
+			return
+		}
 
-		newUser, err := user.Create(db)
+		newUser, err := userRequest.Create(db)
 		if err != nil {
 			ctx.AbortWithStatusJSON(http.StatusConflict, gin.H{
 				"error": err.Error(),
 			})
 			return
 		}
-
-		// After signup login user as well
-		token, err := user.GetToken(db, user.Email, password)
-		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-				"error": err.Error(),
-			})
-			return
-		}
-
-		ctx.Set("Authorization", "Bearer"+token)
-
 		ctx.JSON(http.StatusCreated, gin.H{
 			"user": newUser,
 		})
@@ -49,29 +43,56 @@ func SignUpHandler(db *gorm.DB) gin.HandlerFunc {
 
 func SignInHandler(db *gorm.DB) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		email := ctx.PostForm("email")
-		password := ctx.PostForm("password")
-
-		if email == "" || password == "" {
+		var userRequest types.User
+		if err := ctx.BindJSON(&userRequest); err != nil {
+			log.Warn(err)
 			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"error": "please provide credentials",
+				"error": "invalid request",
 			})
 			return
 		}
 
-		var user types.User
-		token, err := user.GetToken(db, email, password)
+		email := userRequest.Email
+		password := userRequest.Password
+
+		if email == "" || password == "" {
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": "please provide valid credentials",
+			})
+			return
+		}
+
+		user, err := userRequest.FindByEmail(db, email)
 		if err != nil {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			log.Error(err)
+			ctx.AbortWithStatusJSON(http.StatusNotFound, gin.H{
 				"error": err.Error(),
 			})
 			return
 		}
 
-		ctx.Set("Authorization", "Bearer"+token)
+		err = user.CheckPassword(user.Password, password)
+		if err != nil {
+			log.Warn(err)
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+				"error": "invalid credentials",
+			})
+			return
+		}
+
+		token, err := user.GetJwtToken()
+		if err != nil {
+			log.Error(err)
+			ctx.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+
+		ctx.SetCookie("Authorization", token, 24*3600, ctx.Request.URL.Path, "", false, true)
 		ctx.JSON(http.StatusOK, gin.H{
-			"message": "successfully logged in",
-			"token":   token,
+			"access_token": token,
+			"type":         "bearer",
 		})
 	}
 }
