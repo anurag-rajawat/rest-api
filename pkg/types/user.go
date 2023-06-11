@@ -16,7 +16,7 @@ type User struct {
 	UserName  string    `json:"username" gorm:"type:varchar(255);not null"`
 	Email     string    `json:"email" gorm:"type:varchar(255);unique; not null"`
 	Password  string    `json:"password" gorm:"type:varchar(60); not null"`
-	CreatedAt time.Time `json:"created_at" gorm:"autoCreateTime"`
+	CreatedAt time.Time `json:"created_at" sql:"type:timestamp without time zone"`
 }
 
 func (u *User) Create(db *gorm.DB) (*User, error) {
