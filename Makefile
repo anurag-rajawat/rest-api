@@ -15,8 +15,12 @@ test: ## Run tests.
 	@go test ./...
 
 .PHONY: cover
-cover: ## Run tests with coverage
+cover: ## Run tests with coverage.
 	@go test ./... -coverprofile=coverage.out -covermode=atomic
+
+.PHONY: docker-run
+docker-run: ## Start API server in docker containers.
+	@docker compose up -d
 
 ##@ Build
 
