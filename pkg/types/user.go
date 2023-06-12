@@ -69,20 +69,20 @@ func (u *User) Update(db *gorm.DB, id uint64) (*User, error) {
 	if err != nil {
 		return &User{}, err
 	}
-
-	hashedPasswd, err := hashPassword(u.Password)
-	if err != nil {
-		return &User{}, err
+	if u.Password != "" {
+		hashedPasswd, err := hashPassword(u.Password)
+		if err != nil {
+			return &User{}, err
+		}
+		u.Password = hashedPasswd
 	}
-
-	u.Password = hashedPasswd
 	u.ID = id
 	err = db.Where("id = ?", id).First(&user).Updates(&u).Error
 	if err != nil {
 		return &User{}, err
 	}
 
-	return u, nil
+	return &user, nil
 }
 
 func (u *User) Delete(db *gorm.DB, id uint64) error {

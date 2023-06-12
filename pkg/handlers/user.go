@@ -78,7 +78,7 @@ func UpdateUserHandler(db *gorm.DB) gin.HandlerFunc {
 			})
 			return
 		}
-		ctx.JSON(http.StatusCreated, gin.H{
+		ctx.JSON(http.StatusAccepted, gin.H{
 			"user": updatedUser,
 		})
 	}
