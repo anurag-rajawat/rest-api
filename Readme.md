@@ -38,7 +38,7 @@ $ make docker-run
 
 Run tests
 ```shell
-make test
+$ make test
 ```
 
 ## API Resources
