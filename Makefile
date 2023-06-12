@@ -12,7 +12,11 @@ fmt: ## Run go fmt against code.
 
 .PHONY: test
 test: ## Run tests.
-	@go test ./... -coverprofile cover.out
+	@go test ./...
+
+.PHONY: cover
+cover: ## Run tests with coverage
+	@go test ./... -coverprofile=coverage.out -covermode=atomic
 
 ##@ Build
 
