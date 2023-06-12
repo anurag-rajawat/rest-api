@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
@@ -27,6 +29,9 @@ func SignUpHandler(db *gorm.DB) gin.HandlerFunc {
 			})
 			return
 		}
+
+		createdAt := strconv.FormatInt(time.Now().Unix(), 10)
+		userRequest.CreatedAt = &createdAt
 
 		newUser, err := userRequest.Create(db)
 		if err != nil {
