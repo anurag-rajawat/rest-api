@@ -1,0 +1,28 @@
+version: '3'
+
+services:
+  api:
+    container_name: api
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    restart: always
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      - DATABASE_HOST=${DB_HOST}
+      - POSTGRES_USER=${DB_USER}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db:/var/lib/postgresql/data
+
+volumes:
+  db:
