@@ -271,6 +271,12 @@ func TestUpdateUserHandler(t *testing.T) {
 			t.Error(err)
 		}
 		ctx.Request.Body = io.NopCloser(bytes.NewBuffer(dataBytes))
+		expected := map[string]types.User{
+			"user": {
+				UserName: "updatedname",
+				Email:    "updatedemail@gmail.com",
+			},
+		}
 
 		// When
 		handlers.UpdateUserHandler(Db)(ctx)
@@ -279,7 +285,9 @@ func TestUpdateUserHandler(t *testing.T) {
 		var got map[string]types.User
 		err = json.Unmarshal(w.Body.Bytes(), &got)
 		assert.NoError(t, err)
-		assert.Equal(t, http.StatusCreated, w.Code)
+		assert.Equal(t, expected["user"].UserName, got["user"].UserName)
+		assert.Equal(t, expected["user"].Email, got["user"].Email)
+		assert.Equal(t, http.StatusAccepted, w.Code)
 
 		t.Cleanup(CleanDb)
 	})
